@@ -1,13 +1,17 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, Header, HTTPException
+import jwt, os
 
 app = FastAPI()
+SECRET = os.environ.get("JWT_SECRET", "supersecretkey")
 
-FAKE_DB = {
-    "123": {"id": "123", "name": "Mark Wells", "role": "Engineer"}
-}
-
-@app.get("/users/{user_id}")
-def get_user(user_id: str):
-    if user_id not in FAKE_DB:
-        raise HTTPException(status_code=404, detail="User not found")
-    return FAKE_DB[user_id]
+@app.get("/secure-data")
+def secure_data(authorization: str = Header(...)):
+    try:
+        token = authorization.replace("Bearer ", "")
+        payload = jwt.decode(token, SECRET, algorithms=["HS256"])
+        return {
+            "message": "Secure AKS response",
+            "user": payload["sub"]
+        }
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
